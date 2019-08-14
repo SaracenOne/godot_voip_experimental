@@ -3,6 +3,7 @@ extends Node
 const DEFAULT_PORT = 10567
 const MAX_PEERS = 32
 
+var is_server_only : bool = false
 var player_name : String = "Player"
 var players : Dictionary = {}
 
@@ -28,6 +29,15 @@ static func decode_24_bit_value(p_buffer : PoolByteArray) -> int:
 	var integer : int = 0
 	integer = p_buffer[0] & 0x000000ff | (p_buffer[1] << 8) & 0x0000ff00 | (p_buffer[2] << 16) & 0x00ff0000
 	return integer
+
+func is_active_player() -> bool:
+	if get_tree().is_network_server():
+		if !is_server_only:
+			return true
+		else:
+			return false
+	else:
+		return true
 
 func _player_connected(p_id : int) -> void:
 	print(str(p_id) + " connected!")
@@ -61,7 +71,9 @@ func _network_peer_packet(p_id : int, packet : PoolByteArray) -> void:
 
 remote func register_player(id : int, new_player_name : String) -> void:
 	if get_tree().is_network_server():
-		rpc_id(id, "register_player", 1, player_name)
+		if is_server_only == false:
+			rpc_id(id, "register_player", 1, player_name)
+		
 		for p_id in players:
 			rpc_id(id, "register_player", p_id, players[p_id])
 			rpc_id(p_id, "register_player", id, new_player_name)
@@ -78,8 +90,9 @@ remote func unregister_player(p_id : int) -> void:
 func is_network_server():
 	return get_tree().is_network_server()
 
-func host_game(new_player_name : String) -> bool:
+func host_game(new_player_name : String, p_is_server_only : bool) -> bool:
 	player_name = new_player_name
+	is_server_only = p_is_server_only
 	var host : NetworkedMultiplayerENet = NetworkedMultiplayerENet.new()
 	if host.create_server(DEFAULT_PORT, MAX_PEERS) == OK:
 		get_tree().set_network_peer(host)
@@ -139,6 +152,15 @@ func send_audio_packet(p_index : int, p_data : PoolByteArray) -> void:
 	var compressed_audio_packet = encode_voice_packet(p_index , p_data)
 	if get_tree().multiplayer.send_bytes(compressed_audio_packet, NetworkedMultiplayerPeer.TARGET_PEER_BROADCAST, NetworkedMultiplayerPeer.TRANSFER_MODE_UNRELIABLE) != OK:
 		printerr("send_audio_packet: send_bytes failed!")
+
+func get_full_player_list() -> Array:
+	var players = get_player_list()
+	players.sort()
+	
+	if is_active_player():
+		players.push_front(get_player_name() + " (You)")
+	
+	return players
 
 func _ready() -> void:
 	var connect_result : int = OK

@@ -20,7 +20,7 @@ func add_player_audio(p_player_id : int) -> void:
 		
 		var new_generator = AudioStreamGenerator.new()
 		new_generator.set_mix_rate(48000)
-		new_generator.set_buffer_length(0.04)
+		new_generator.set_buffer_length(0.1)
 		
 		var audio_stream_player = AudioStreamPlayer.new()
 		audio_stream_player.set_name(str(p_player_id))
@@ -77,7 +77,6 @@ func attempt_to_feed_stream(p_audio_stream_player, p_buffers):
 	var playback = p_audio_stream_player.get_stream_playback()
 	var required_packets = get_required_packet_count(playback, voice_manager_const.BUFFER_FRAME_COUNT)
 	
-	print(required_packets)
 	while p_buffers.size() < required_packets:
 		p_buffers.push_front(null)
 	
@@ -85,7 +84,7 @@ func attempt_to_feed_stream(p_audio_stream_player, p_buffers):
 		var buffer = p_buffers.pop_back()
 		if buffer != null:
 			var uncompressed_audio : PoolVector2Array = godot_voice.decompress_buffer(buffer)
-			if uncompressed_audio.size() == voice_manager_const.BUFFER_FRAME_COUNT and network_layer.is_network_server():
+			if uncompressed_audio.size() == voice_manager_const.BUFFER_FRAME_COUNT:
 				playback.push_buffer(uncompressed_audio)
 			else:
 				playback.push_buffer(blank_packet)

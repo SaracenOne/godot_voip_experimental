@@ -1,12 +1,12 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=2 format=2]
 
 [ext_resource path="res://lobby.gd" type="Script" id=1]
-[ext_resource path="res://voice_manager.gdns" type="Script" id=2]
-[ext_resource path="res://voice_controller.gd" type="Script" id=3]
 
 [node name="SpeechLobby" type="Control"]
 anchor_right = 1.0
 anchor_bottom = 1.0
+margin_top = 0.166077
+margin_bottom = 0.166077
 size_flags_horizontal = 2
 size_flags_vertical = 2
 script = ExtResource( 1 )
@@ -135,11 +135,18 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
+[node name="server_only" type="CheckBox" parent="connect"]
+margin_left = 12.0
+margin_top = 111.0
+margin_right = 114.0
+margin_bottom = 135.0
+text = "Server Only"
+
 [node name="error_label" type="Label" parent="connect"]
 margin_left = 15.0
-margin_top = 125.0
+margin_top = 135.0
 margin_right = 257.0
-margin_bottom = 139.0
+margin_bottom = 149.0
 size_flags_horizontal = 2
 size_flags_vertical = 0
 custom_colors/font_color = Color( 0.820312, 0.291595, 0.291595, 1 )
@@ -157,13 +164,5 @@ size_flags_vertical = 2
 __meta__ = {
 "_edit_use_anchors_": false
 }
-
-[node name="VoiceController" type="Node" parent="."]
-script = ExtResource( 3 )
-
-[node name="PlayerStreamPlayers" type="Node" parent="VoiceController"]
-
-[node name="GodotVoice" type="Node" parent="."]
-script = ExtResource( 2 )
 [connection signal="pressed" from="connect/host" to="." method="_on_host_pressed"]
 [connection signal="pressed" from="connect/join" to="." method="_on_join_pressed"]
