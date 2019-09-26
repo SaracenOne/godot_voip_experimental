@@ -100,9 +100,9 @@ func host_game(new_player_name : String, p_is_server_only : bool) -> bool:
 	
 	return false
 
-func join_game(ip : String, new_player_name : String):
+func join_game(ip : String, new_player_name : String) -> void:
 	player_name = new_player_name
-	var host = NetworkedMultiplayerENet.new()
+	var host : NetworkedMultiplayerENet = NetworkedMultiplayerENet.new()
 	if host.create_client(ip, DEFAULT_PORT) == OK:
 		get_tree().set_network_peer(host)
 
@@ -149,7 +149,7 @@ func decode_voice_packet(p_voice_buffer : PoolByteArray) -> Array:
 	return [encoded_id, new_pool]
 
 func send_audio_packet(p_index : int, p_data : PoolByteArray) -> void:
-	var compressed_audio_packet = encode_voice_packet(p_index , p_data)
+	var compressed_audio_packet : PoolByteArray = encode_voice_packet(p_index , p_data)
 	if get_tree().multiplayer.send_bytes(compressed_audio_packet, NetworkedMultiplayerPeer.TARGET_PEER_BROADCAST, NetworkedMultiplayerPeer.TRANSFER_MODE_UNRELIABLE) != OK:
 		printerr("send_audio_packet: send_bytes failed!")
 

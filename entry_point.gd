@@ -2,15 +2,15 @@ extends Node
 
 const voice_manager_const = preload("voice_manager_constants.gd")
 const lobby_scene_const = preload("lobby.tscn")
-var lobby_scene = null
+var lobby_scene : Node = null
 
-var is_connected = false
+var is_connected : bool = false
 
-var audio_mutex = Mutex.new()
-var input_audio_sent_id = 0
-var input_audio_buffer_array = []
+var audio_mutex : Mutex = Mutex.new()
+var input_audio_sent_id : int = 0
+var input_audio_buffer_array : Array = []
 
-func host(p_player_name, p_server_only): 
+func host(p_player_name : String, p_server_only : bool) -> void: 
 	if network_layer.host_game(p_player_name, p_server_only):
 		if lobby_scene:
 			if network_layer.is_active_player():
@@ -20,23 +20,23 @@ func host(p_player_name, p_server_only):
 		
 		confirm_connection()
 
-func confirm_connection():
+func confirm_connection() -> void:
 	is_connected = true
 	input_audio_sent_id = 0
 
-func set_buffer(p_buffer):
+func set_buffer(p_buffer : PoolByteArray) -> void:
 	audio_mutex.lock()
 	input_audio_buffer_array.push_back(p_buffer)
 	audio_mutex.unlock()
 
-func _audio_packet_processed(p_buffer):
+func _audio_packet_processed(p_buffer : PoolByteArray) -> void:
 	if network_layer.is_active_player():
 		if p_buffer.size() == voice_manager_const.BUFFER_FRAME_COUNT * voice_manager_const.BUFFER_BYTE_COUNT:
 			var compressed_buffer = $GodotVoice.compress_buffer(p_buffer)
 			set_buffer(compressed_buffer)
 
-func copy_and_clear_buffers():
-	var out_buffers = []
+func copy_and_clear_buffers() -> Array:
+	var out_buffers : Array = []
 	
 	if audio_mutex.try_lock() == OK:
 		out_buffers = input_audio_buffer_array
@@ -45,7 +45,7 @@ func copy_and_clear_buffers():
 	
 	return out_buffers
 
-func _on_connection_success():
+func _on_connection_success() -> void:
 	if network_layer.is_active_player():
 		$GodotVoice.start()
 	
@@ -55,33 +55,33 @@ func _on_connection_success():
 		
 	confirm_connection()
 
-func _on_connection_failed():
+func _on_connection_failed() -> void:
 	if lobby_scene:
 		lobby_scene.on_connection_failed()
 	
-func _player_list_changed():
+func _player_list_changed() -> void:
 	if network_layer.is_active_player():
 		$VoiceController.update_player_audio()
 	
 	if lobby_scene:
 		lobby_scene.refresh_lobby(network_layer.get_full_player_list())
 
-func _on_game_ended():
+func _on_game_ended() -> void:
 	if network_layer.is_active_player():
 		$GodotVoice.stop()
 	
 	if lobby_scene:
 		lobby_scene.on_game_ended()
 
-func _on_game_error(errtxt):
+func _on_game_error(p_errtxt : String) -> void:
 	if lobby_scene:
-		lobby_scene.on_game_error()
+		lobby_scene.on_game_error(p_errtxt)
 
-func _on_received_audio_packet(p_id, p_index, p_packet):
+func _on_received_audio_packet(p_id : int, p_index : int, p_packet : PoolByteArray) -> void:
 	if network_layer.is_active_player():
 		$VoiceController.on_received_audio_packet(p_id, p_index, p_packet)
 
-func setup_connections():
+func setup_connections() -> void:
 	if network_layer.connect("connection_failed", self, "_on_connection_failed") != OK:
 		printerr("connection_failed could not be connected!")
 	if network_layer.connect("connection_succeeded", self, "_on_connection_success") != OK:
@@ -102,15 +102,15 @@ func setup_connections():
 		if lobby_scene.connect("host_requested", self, "host") != OK:
 			printerr("audio_packet_processed could not be connected!")
 
-func _process(delta):
-	if delta > 0.0:
+func _process(p_delta : float) -> void:
+	if p_delta > 0.0:
 		if is_connected and network_layer.is_active_player():
 			var buffers = copy_and_clear_buffers()
 			for buffer in buffers:
 				network_layer.send_audio_packet(input_audio_sent_id, buffer)
 				input_audio_sent_id += 1
 
-func _ready():
+func _ready() -> void:
 	lobby_scene = lobby_scene_const.instance()
 	add_child(lobby_scene)
 	
