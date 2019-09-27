@@ -4,7 +4,8 @@ const voice_manager_const = preload("voice_manager_constants.gd")
 var blank_packet : PoolVector2Array = PoolVector2Array()
 var player_audio : Dictionary = {}
 
-const BUFFER_DELAY_THRESHOLD = 0.1
+const BUFFER_DELAY_THRESHOLD = 0.05
+const MAX_JITTER_BUFFER_SIZE = 8
 
 onready var godot_voice = get_node("../GodotVoice")
 
@@ -31,7 +32,7 @@ func add_player_audio(p_player_id : int) -> void:
 		$PlayerStreamPlayers.add_child(audio_stream_player)
 		audio_stream_player.play()
 		
-		player_audio[p_player_id] = {"audio_stream_player":audio_stream_player, "buffers":[], "index":-1, "delta":0.0}
+		player_audio[p_player_id] = {"audio_stream_player":audio_stream_player, "jitter_buffer":[], "index":-1}
 	
 func remove_player_audio(p_player_id : int) -> void:
 	if player_audio.has(p_player_id):
@@ -47,24 +48,28 @@ func on_received_audio_packet(p_id : int, p_index : int, p_packet : PoolByteArra
 			player_audio[p_id].index = p_index - 1
 		
 		var current_index : int = player_audio[p_id].index
-		var buffers : Array = player_audio[p_id].buffers
+		var jitter_buffer : Array = player_audio[p_id].jitter_buffer
 		
 		var index_offset : int = p_index - current_index
 		if index_offset > 0:
 			# For skipped buffers, add empty packets
 			for i in range(0, index_offset-1):
-				buffers.push_front(null)
+				jitter_buffer.push_front(null)
 			# Add the new valid buffer
-			buffers.push_front(p_packet)
+			jitter_buffer.push_front(p_packet)
+				
+			var excess_packet_count : int = jitter_buffer.size() - MAX_JITTER_BUFFER_SIZE
+			for i in range(0, excess_packet_count):
+				jitter_buffer.pop_back()
 				
 			player_audio[p_id].index += index_offset
 		else:
-			var index : int = buffers.size() + index_offset
+			var index : int = jitter_buffer.size() + index_offset
 			if index >= 0:
 				# Update existing buffer
-				buffers[index] = p_packet
+				jitter_buffer[index] = p_packet
 		
-		player_audio[p_id].buffers = buffers
+		player_audio[p_id].jitter_buffer = jitter_buffer
 
 func update_player_audio() -> void:
 	var player_ids : Array = network_layer.get_player_ids()
@@ -78,19 +83,16 @@ func update_player_audio() -> void:
 		if !player_ids.has(player_id):
 			remove_player_audio(player_id)
 			
-func attempt_to_feed_stream(p_audio_stream_player : AudioStreamPlayer, p_buffers : Array) -> void:
-	# Process voice only for client
-	if !get_tree().is_network_server():
-		return
-	
+func attempt_to_feed_stream(p_audio_stream_player : AudioStreamPlayer, p_jitter_buffer : Array) -> void:
+
 	var playback : AudioStreamPlayback = p_audio_stream_player.get_stream_playback()
 	var required_packets : int = get_required_packet_count(playback, voice_manager_const.BUFFER_FRAME_COUNT)
 	
-	while p_buffers.size() < required_packets:
-		p_buffers.push_front(null)
+	while p_jitter_buffer.size() < required_packets:
+		p_jitter_buffer.push_front(null)
 	
 	for i in range(0, required_packets):
-		var buffer = p_buffers.pop_back()
+		var buffer = p_jitter_buffer.pop_back()
 		if buffer != null:
 			var uncompressed_audio : PoolVector2Array = godot_voice.decompress_buffer(buffer)
 			if uncompressed_audio.size() == voice_manager_const.BUFFER_FRAME_COUNT:
@@ -103,8 +105,7 @@ func attempt_to_feed_stream(p_audio_stream_player : AudioStreamPlayer, p_buffers
 func _process(p_delta : float) -> void:
 	if p_delta > 0.0:
 		for key in player_audio.keys():
-			player_audio[key].delta += p_delta # Increase internal timer for each player
-			attempt_to_feed_stream(player_audio[key].audio_stream_player, player_audio[key].buffers)
+			attempt_to_feed_stream(player_audio[key].audio_stream_player, player_audio[key].jitter_buffer)
 
 func _init() -> void:
 	for i in range(0, voice_manager_const.BUFFER_FRAME_COUNT):
