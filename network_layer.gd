@@ -3,6 +3,8 @@ extends Node
 const DEFAULT_PORT = 10567
 const MAX_PEERS = 32
 
+var blocking_sending_audio_packets : bool = false
+
 var is_server_only : bool = false
 var player_name : String = "Player"
 var players : Dictionary = {}
@@ -149,9 +151,10 @@ func decode_voice_packet(p_voice_buffer : PoolByteArray) -> Array:
 	return [encoded_id, new_pool]
 
 func send_audio_packet(p_index : int, p_data : PoolByteArray) -> void:
-	var compressed_audio_packet : PoolByteArray = encode_voice_packet(p_index , p_data)
-	if get_tree().multiplayer.send_bytes(compressed_audio_packet, NetworkedMultiplayerPeer.TARGET_PEER_BROADCAST, NetworkedMultiplayerPeer.TRANSFER_MODE_UNRELIABLE) != OK:
-		printerr("send_audio_packet: send_bytes failed!")
+	if not blocking_sending_audio_packets:
+		var compressed_audio_packet : PoolByteArray = encode_voice_packet(p_index , p_data)
+		if get_tree().multiplayer.send_bytes(compressed_audio_packet, NetworkedMultiplayerPeer.TARGET_PEER_BROADCAST, NetworkedMultiplayerPeer.TRANSFER_MODE_UNRELIABLE) != OK:
+			printerr("send_audio_packet: send_bytes failed!")
 
 func get_full_player_list() -> Array:
 	var players = get_player_list()
@@ -161,6 +164,14 @@ func get_full_player_list() -> Array:
 		players.push_front(get_player_name() + " (You)")
 	
 	return players
+	
+func _input(p_event : InputEvent):
+	if p_event is InputEventKey:
+		if p_event.scancode == KEY_X:
+			if p_event.pressed:
+				blocking_sending_audio_packets = true
+			else:
+				blocking_sending_audio_packets = false
 
 func _ready() -> void:
 	var connect_result : int = OK
