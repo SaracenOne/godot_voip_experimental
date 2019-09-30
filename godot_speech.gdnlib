@@ -8,7 +8,9 @@ reloadable=true
 [entry]
 
 Windows.64="res://libGodotSpeech.dll"
+X11.64="res://libGodotSpeech.so"
 
 [dependencies]
 
 Windows.64=[  ]
+X11.64=[  ]
