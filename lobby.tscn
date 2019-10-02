@@ -53,10 +53,10 @@ anchor_left = 0.5
 anchor_top = 0.505716
 anchor_right = 0.5
 anchor_bottom = 0.505716
-margin_left = -138.5
-margin_top = -83.5
-margin_right = 138.5
-margin_bottom = 83.5
+margin_left = -138.0
+margin_top = -83.4296
+margin_right = 139.0
+margin_bottom = 124.57
 size_flags_horizontal = 2
 size_flags_vertical = 2
 __meta__ = {
@@ -89,9 +89,9 @@ __meta__ = {
 
 [node name="ip_label" type="Label" parent="connect"]
 margin_left = 15.0
-margin_top = 66.0
+margin_top = 116.0
 margin_right = 57.0
-margin_bottom = 80.0
+margin_bottom = 130.0
 size_flags_horizontal = 2
 size_flags_vertical = 0
 text = "IP:"
@@ -101,12 +101,37 @@ __meta__ = {
 
 [node name="ip" type="LineEdit" parent="connect"]
 margin_left = 17.0
+margin_top = 135.0
+margin_right = 173.0
+margin_bottom = 159.0
+size_flags_horizontal = 2
+size_flags_vertical = 2
+text = "127.0.0.1"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="port_label" type="Label" parent="connect"]
+margin_left = 15.0
+margin_top = 66.0
+margin_right = 57.0
+margin_bottom = 80.0
+size_flags_horizontal = 2
+size_flags_vertical = 0
+text = "Port:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="port" type="SpinBox" parent="connect"]
+margin_left = 17.0
 margin_top = 85.0
 margin_right = 173.0
 margin_bottom = 109.0
 size_flags_horizontal = 2
 size_flags_vertical = 2
-text = "127.0.0.1"
+max_value = 99999.0
+value = 10567.0
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -125,9 +150,9 @@ __meta__ = {
 
 [node name="join" type="Button" parent="connect"]
 margin_left = 181.0
-margin_top = 87.0
+margin_top = 137.0
 margin_right = 246.0
-margin_bottom = 107.0
+margin_bottom = 157.0
 size_flags_horizontal = 2
 size_flags_vertical = 2
 text = "Join"
@@ -137,16 +162,19 @@ __meta__ = {
 
 [node name="server_only" type="CheckBox" parent="connect"]
 margin_left = 12.0
-margin_top = 111.0
+margin_top = 161.0
 margin_right = 114.0
-margin_bottom = 135.0
+margin_bottom = 185.0
 text = "Server Only"
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="error_label" type="Label" parent="connect"]
 margin_left = 15.0
-margin_top = 135.0
+margin_top = 185.0
 margin_right = 257.0
-margin_bottom = 149.0
+margin_bottom = 199.0
 size_flags_horizontal = 2
 size_flags_vertical = 0
 custom_colors/font_color = Color( 0.820312, 0.291595, 0.291595, 1 )

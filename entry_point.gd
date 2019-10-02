@@ -10,8 +10,8 @@ var audio_mutex : Mutex = Mutex.new()
 var input_audio_sent_id : int = 0
 var input_audio_buffer_array : Array = []
 
-func host(p_player_name : String, p_server_only : bool) -> void: 
-	if network_layer.host_game(p_player_name, p_server_only):
+func host(p_player_name : String, p_port : int, p_server_only : bool) -> void: 
+	if network_layer.host_game(p_player_name, p_port, p_server_only):
 		if lobby_scene:
 			if network_layer.is_active_player():
 				$GodotVoice.start()

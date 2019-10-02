@@ -1,6 +1,6 @@
 extends Control
 
-signal host_requested(p_player_name, p_server_only)
+signal host_requested(p_player_name, p_port, p_server_only)
 
 func _on_host_pressed() -> void:
 	if get_node("connect/name").text == "":
@@ -13,13 +13,16 @@ func _on_host_pressed() -> void:
 	
 	var server_only : bool = get_node("connect/server_only").pressed
 	var player_name : String = get_node("connect/name").text
+	var port : int = get_node("connect/port").value
 	
-	emit_signal("host_requested", player_name, server_only)
+	emit_signal("host_requested", player_name, port, server_only)
 
 func _on_join_pressed() -> void:
 	if get_node("connect/name").text == "":
 		get_node("connect/error_label").text = "Invalid name!"
 		return
+		
+	var port : int = get_node("connect/port").value
 
 	var ip : String = get_node("connect/ip").text
 	if not ip.is_valid_ip_address():
@@ -31,7 +34,7 @@ func _on_join_pressed() -> void:
 	get_node("connect/join").disabled = true
 
 	var player_name : String = get_node("connect/name").text
-	network_layer.join_game(ip, player_name)
+	network_layer.join_game(ip, port, player_name)
 
 func on_connection_success() -> void:
 	get_node("connect").hide()

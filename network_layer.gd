@@ -1,6 +1,5 @@
 extends Node
 
-const DEFAULT_PORT = 10567
 const MAX_PEERS = 32
 
 var blocking_sending_audio_packets : bool = false
@@ -92,20 +91,20 @@ remote func unregister_player(p_id : int) -> void:
 func is_network_server():
 	return get_tree().is_network_server()
 
-func host_game(new_player_name : String, p_is_server_only : bool) -> bool:
+func host_game(new_player_name : String, port : int, p_is_server_only : bool) -> bool:
 	player_name = new_player_name
 	is_server_only = p_is_server_only
 	var host : NetworkedMultiplayerENet = NetworkedMultiplayerENet.new()
-	if host.create_server(DEFAULT_PORT, MAX_PEERS) == OK:
+	if host.create_server(port, MAX_PEERS) == OK:
 		get_tree().set_network_peer(host)
 		return true
 	
 	return false
 
-func join_game(ip : String, new_player_name : String) -> void:
+func join_game(ip : String, port : int, new_player_name : String) -> void:
 	player_name = new_player_name
 	var host : NetworkedMultiplayerENet = NetworkedMultiplayerENet.new()
-	if host.create_client(ip, DEFAULT_PORT) == OK:
+	if host.create_client(ip, port) == OK:
 		get_tree().set_network_peer(host)
 
 func get_player_list() -> Array:
@@ -157,13 +156,13 @@ func send_audio_packet(p_index : int, p_data : PoolByteArray) -> void:
 			printerr("send_audio_packet: send_bytes failed!")
 
 func get_full_player_list() -> Array:
-	var players = get_player_list()
-	players.sort()
+	var player_list = get_player_list()
+	player_list.sort()
 	
 	if is_active_player():
-		players.push_front(get_player_name() + " (You)")
+		player_list.push_front(get_player_name() + " (You)")
 	
-	return players
+	return player_list
 	
 func _input(p_event : InputEvent):
 	if p_event is InputEventKey:
