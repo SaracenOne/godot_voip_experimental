@@ -42,6 +42,7 @@ func remove_player_audio(p_player_id : int) -> void:
 		player_audio.erase(p_player_id)
 
 func on_received_audio_packet(p_id : int, p_index : int, p_packet : PoolByteArray) -> void:
+	print("received_audio_packet: " + "id: " + str(p_id) + " index: " + str(p_index))
 	if player_audio.has(p_id):
 		# Detects if no audio packets have been received from this player yet.
 		if player_audio[p_id].index == -1:
@@ -53,18 +54,24 @@ func on_received_audio_packet(p_id : int, p_index : int, p_packet : PoolByteArra
 		var index_offset : int = p_index - current_index
 		if index_offset > 0:
 			# For skipped buffers, add empty packets
-			for i in range(0, index_offset-1):
-				jitter_buffer.push_front(null)
+			var skipped_packets = index_offset-1
+			if skipped_packets:
+				print("Skipped packets: " + str(skipped_packets))
+				for i in range(0, skipped_packets):
+					jitter_buffer.push_front(null)
 			# Add the new valid buffer
 			jitter_buffer.push_front(p_packet)
 				
 			var excess_packet_count : int = jitter_buffer.size() - MAX_JITTER_BUFFER_SIZE
+			if excess_packet_count > 0:
+				print("Excess packet count: " + str(excess_packet_count))
 			for i in range(0, excess_packet_count):
 				jitter_buffer.pop_back()
 				
 			player_audio[p_id].index += index_offset
 		else:
 			var index : int = jitter_buffer.size() + index_offset
+			print("Updating existing index: " + str(index))
 			if index >= 0:
 				# Update existing buffer
 				jitter_buffer[index] = p_packet
@@ -84,7 +91,6 @@ func update_player_audio() -> void:
 			remove_player_audio(player_id)
 			
 func attempt_to_feed_stream(p_audio_stream_player : AudioStreamPlayer, p_jitter_buffer : Array) -> void:
-
 	var playback : AudioStreamPlayback = p_audio_stream_player.get_stream_playback()
 	var required_packets : int = get_required_packet_count(playback, voice_manager_const.BUFFER_FRAME_COUNT)
 	
