@@ -32,16 +32,17 @@ func set_buffer(p_buffer : PoolByteArray) -> void:
 func _audio_packet_processed(p_buffer : PoolByteArray) -> void:
 	if network_layer.is_active_player():
 		if p_buffer.size() == voice_manager_const.BUFFER_FRAME_COUNT * voice_manager_const.BUFFER_BYTE_COUNT:
-			var compressed_buffer = $GodotVoice.compress_buffer(p_buffer)
-			set_buffer(compressed_buffer)
+			var compressed_buffer : PoolByteArray = $GodotVoice.compress_buffer(p_buffer)
+			if compressed_buffer:
+				set_buffer(compressed_buffer)
 
 func copy_and_clear_buffers() -> Array:
 	var out_buffers : Array = []
 	
-	if audio_mutex.try_lock() == OK:
-		out_buffers = input_audio_buffer_array
-		input_audio_buffer_array = []
-		audio_mutex.unlock()
+	audio_mutex.lock()
+	out_buffers = input_audio_buffer_array.duplicate()
+	input_audio_buffer_array = []
+	audio_mutex.unlock()
 	
 	return out_buffers
 
@@ -102,15 +103,54 @@ func setup_connections() -> void:
 		if lobby_scene.connect("host_requested", self, "host") != OK:
 			printerr("audio_packet_processed could not be connected!")
 
+var buffer_queue = []
+
+export(float) var min_latency = 0.0
+export(float) var max_latency = 0.0
+export(float) var drop_rate = 0.0
+export(float) var dup_rate = 0.0
+
+static func sort_buffer_by_time(a, b):
+	return a[1] <= b[1]
+
 func _process(p_delta : float) -> void:
 	if p_delta > 0.0:
 		if is_connected and network_layer.is_active_player():
+			var time = OS.get_ticks_msec() * 1000
+			
 			var buffers = copy_and_clear_buffers()
-			for buffer in buffers:
-				network_layer.send_audio_packet(input_audio_sent_id, buffer)
+			for buffer_data in buffers:
+				if randf() < drop_rate:
+					continue
+					
+				var first_packet_time = time + min_latency + randf() * (max_latency-min_latency)
+				buffer_queue.append([buffer_data, first_packet_time, input_audio_sent_id])
+				while(randf() < dup_rate):
+					var dup_packet_time = time + min_latency + randf() * (max_latency-min_latency)
+					buffer_queue.append([buffer_data, dup_packet_time, input_audio_sent_id])
+			
 				input_audio_sent_id += 1
+			
+			if min_latency != max_latency:
+				buffer_queue.sort_custom(self, "sort_buffer_by_time")
+				
+			var current_buffer_queue = buffer_queue.duplicate()
+			for buffer in current_buffer_queue:
+				
+				var buffer_data = buffer[0]
+				var buffer_time = buffer[1]
+				var buffer_id = buffer[2]
+				
+				if time >= buffer_time:
+					var id = buffer_queue.find(buffer)
+					if id == -1:
+						printerr("INVALID ID")
+					buffer_queue.remove(id)
+					network_layer.send_audio_packet(buffer_id, buffer_data)
 
 func _ready() -> void:
+	randomize()
+	
 	lobby_scene = lobby_scene_const.instance()
 	add_child(lobby_scene)
 	

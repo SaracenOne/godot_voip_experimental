@@ -4,7 +4,10 @@ const voice_manager_const = preload("voice_manager_constants.gd")
 var blank_packet : PoolVector2Array = PoolVector2Array()
 var player_audio : Dictionary = {}
 
-const BUFFER_DELAY_THRESHOLD = 0.05
+export(bool) var use_sample_stretching = false
+
+const VOICE_PACKET_SAMPLERATE = 48000
+const BUFFER_DELAY_THRESHOLD = 0.1
 const MAX_JITTER_BUFFER_SIZE = 8
 
 onready var godot_voice = get_node("../GodotVoice")
@@ -22,7 +25,7 @@ func add_player_audio(p_player_id : int) -> void:
 	if !player_audio.has(p_player_id):
 		
 		var new_generator : AudioStreamGenerator = AudioStreamGenerator.new()
-		new_generator.set_mix_rate(48000)
+		new_generator.set_mix_rate(VOICE_PACKET_SAMPLERATE)
 		new_generator.set_buffer_length(BUFFER_DELAY_THRESHOLD)
 		
 		var audio_stream_player : AudioStreamPlayer = AudioStreamPlayer.new()
@@ -56,25 +59,40 @@ func on_received_audio_packet(p_id : int, p_index : int, p_packet : PoolByteArra
 			# For skipped buffers, add empty packets
 			var skipped_packets = index_offset-1
 			if skipped_packets:
-				print("Skipped packets: " + str(skipped_packets))
+				var fill_packets = null
+				
+				# If using stretching, fill with last received packet
+				if use_sample_stretching and !jitter_buffer.empty():
+					fill_packets = jitter_buffer.back()[0]
+					
 				for i in range(0, skipped_packets):
-					jitter_buffer.push_front(null)
+					jitter_buffer.push_back([fill_packets, false])
 			# Add the new valid buffer
-			jitter_buffer.push_front(p_packet)
+			jitter_buffer.push_back([p_packet, true])
 				
 			var excess_packet_count : int = jitter_buffer.size() - MAX_JITTER_BUFFER_SIZE
 			if excess_packet_count > 0:
 				print("Excess packet count: " + str(excess_packet_count))
 			for i in range(0, excess_packet_count):
-				jitter_buffer.pop_back()
+				jitter_buffer.pop_front()
 				
 			player_audio[p_id].index += index_offset
 		else:
-			var index : int = jitter_buffer.size() + index_offset
+			var index : int = jitter_buffer.size()-1 + index_offset
 			print("Updating existing index: " + str(index))
 			if index >= 0:
 				# Update existing buffer
-				jitter_buffer[index] = p_packet
+				if use_sample_stretching:
+					var jitter_buffer_size = jitter_buffer.size()
+					for i in range(index, jitter_buffer_size-1):
+						if jitter_buffer[i][1] == true:
+							break
+							
+						jitter_buffer[i] = [p_packet, false]
+				
+				jitter_buffer[index] = [p_packet, true]
+			else:
+				printerr("invalid repair index!")
 		
 		player_audio[p_id].jitter_buffer = jitter_buffer
 
@@ -94,19 +112,33 @@ func attempt_to_feed_stream(p_audio_stream_player : AudioStreamPlayer, p_jitter_
 	var playback : AudioStreamPlayback = p_audio_stream_player.get_stream_playback()
 	var required_packets : int = get_required_packet_count(playback, voice_manager_const.BUFFER_FRAME_COUNT)
 	
+	var last_packet = null
+	if !p_jitter_buffer.empty():
+		last_packet = p_jitter_buffer.back()[0]
 	while p_jitter_buffer.size() < required_packets:
-		p_jitter_buffer.push_front(null)
+		var fill_packets = null
+		# If using stretching, fill with last received packet
+		if use_sample_stretching and !p_jitter_buffer.empty():
+			fill_packets = last_packet
+			
+		p_jitter_buffer.push_back([fill_packets, false])
 	
 	for i in range(0, required_packets):
-		var buffer = p_jitter_buffer.pop_back()
+		var buffer = p_jitter_buffer.pop_front()[0]
 		if buffer != null:
 			var uncompressed_audio : PoolVector2Array = godot_voice.decompress_buffer(buffer)
-			if uncompressed_audio.size() == voice_manager_const.BUFFER_FRAME_COUNT:
-				playback.push_buffer(uncompressed_audio)
+			if uncompressed_audio:
+				if uncompressed_audio.size() == voice_manager_const.BUFFER_FRAME_COUNT:
+					playback.push_buffer(uncompressed_audio)
+				else:
+					playback.push_buffer(blank_packet)
 			else:
 				playback.push_buffer(blank_packet)
 		else:
 			playback.push_buffer(blank_packet)
+	
+	if use_sample_stretching and p_jitter_buffer.empty():
+		p_jitter_buffer.push_back([last_packet, false])
 
 func _process(p_delta : float) -> void:
 	if p_delta > 0.0:

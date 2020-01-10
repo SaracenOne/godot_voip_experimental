@@ -9,6 +9,7 @@ script = ExtResource( 3 )
 
 [node name="VoiceController" type="Node" parent="."]
 script = ExtResource( 2 )
+use_sample_stretching = true
 
 [node name="PlayerStreamPlayers" type="Node" parent="VoiceController"]
 
