@@ -8,7 +8,7 @@ export(bool) var use_sample_stretching = false
 
 const VOICE_PACKET_SAMPLERATE = 48000
 const BUFFER_DELAY_THRESHOLD = 0.1
-const MAX_JITTER_BUFFER_SIZE = 8
+const MAX_JITTER_BUFFER_SIZE = 10
 
 onready var godot_voice = get_node("../GodotVoice")
 
@@ -45,7 +45,7 @@ func remove_player_audio(p_player_id : int) -> void:
 		player_audio.erase(p_player_id)
 
 func on_received_audio_packet(p_id : int, p_index : int, p_packet : PoolByteArray) -> void:
-	print("received_audio_packet: " + "id: " + str(p_id) + " index: " + str(p_index))
+	#print("received_audio_packet: " + "id: " + str(p_id) + " index: " + str(p_index))
 	if player_audio.has(p_id):
 		# Detects if no audio packets have been received from this player yet.
 		if player_audio[p_id].index == -1:
@@ -71,8 +71,8 @@ func on_received_audio_packet(p_id : int, p_index : int, p_packet : PoolByteArra
 			jitter_buffer.push_back([p_packet, true])
 				
 			var excess_packet_count : int = jitter_buffer.size() - MAX_JITTER_BUFFER_SIZE
-			if excess_packet_count > 0:
-				print("Excess packet count: " + str(excess_packet_count))
+			#if excess_packet_count > 0:
+			#	print("Excess packet count: " + str(excess_packet_count))
 			for i in range(0, excess_packet_count):
 				jitter_buffer.pop_front()
 				
