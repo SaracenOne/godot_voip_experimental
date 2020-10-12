@@ -10,11 +10,23 @@ config_version=4
 
 _global_script_classes=[ {
 "base": "Node",
+"class": "GodotSpeech",
+"language": "NativeScript",
+"path": "res://bin/godot_speech.gdns"
+}, {
+"base": "",
+"class": "SpeechDecoder",
+"language": "NativeScript",
+"path": "res://bin/speech_processor.gdns"
+}, {
+"base": "",
 "class": "VoiceManager",
 "language": "NativeScript",
 "path": "res://voice_manager.gdns"
 } ]
 _global_script_class_icons={
+"GodotSpeech": "",
+"SpeechDecoder": "",
 "VoiceManager": ""
 }
 

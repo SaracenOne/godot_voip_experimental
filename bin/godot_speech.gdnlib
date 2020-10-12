@@ -1,0 +1,20 @@
+[general]
+
+singleton=false
+load_once=true
+symbol_prefix="godot_speech_"
+reloadable=true
+
+[entry]
+
+Windows.64="res://bin/libGodotSpeech.dll"
+OSX.64="res://bin/libGodotSpeech.dylib"
+X11.64="res://bin/libGodotSpeech.so"
+Server.64="res://bin/libGodotSpeech.so"
+
+[dependencies]
+
+Windows.64=[  ]
+OSX.64=[  ]
+X11.64=[  ]
+Server.64=[  ]

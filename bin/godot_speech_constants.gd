@@ -1,0 +1,6 @@
+# Workaround to lack of constant support in GDNative
+const VOICE_SAMPLE_RATE = 48000
+
+const MILLISECONDS_PER_PACKET = 100
+
+const BUFFER_FRAME_COUNT = VOICE_SAMPLE_RATE / MILLISECONDS_PER_PACKET

@@ -8,6 +8,8 @@ var is_server_only : bool = false
 var player_name : String = "Player"
 var players : Dictionary = {}
 
+signal peer_connected(p_id)
+signal peer_disconnected(p_id)
 signal player_list_changed()
 signal connection_failed()
 signal connection_succeeded()
@@ -42,13 +44,15 @@ func is_active_player() -> bool:
 
 func _player_connected(p_id : int) -> void:
 	print(str(p_id) + " connected!")
+	emit_signal("peer_connected", p_id)
 
-func _player_disconnected(id : int) -> void:
+func _player_disconnected(p_id : int) -> void:
 	if get_tree().is_network_server():
-		unregister_player(id)
-		for p_id in players:
+		unregister_player(p_id)
+		for id in players:
 			# Erase in the server
-			rpc_id(p_id, "unregister_player", id)
+			rpc_id(id, "unregister_player", p_id)
+	emit_signal("peer_disconnected", p_id)
 
 func _connected_ok() -> void:
 	rpc("register_player", get_tree().get_network_unique_id(), player_name)
